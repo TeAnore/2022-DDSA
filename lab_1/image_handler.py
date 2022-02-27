@@ -1,23 +1,21 @@
-import cv2
-import numpy as np
+from settings import *
 from multiprocessing.dummy import Process
 
-
-class ImageNetworker(Process):
+class ImageHandler(Process):
     """
-    Contains utilities for sending/receiving images using sockets.
+        Содержит основные процедуры обработки изображений
     """
-
-    def __init__(self, block_size=1024, name='networker'):
+    def __init__(self, block_size=BODY_SIZE, name='ImageHandler'):
         super().__init__()
         self.block_size = block_size
         self.name = name
 
     def log(self, *args):
-        print(f'{self.name} /', *args)
+        print(f'{self.name} :', *args)
 
-    # --- SENDING
+    # Методы отправки изображения
     def send_image(self, image, socket):
+        # Вычисляем мета данные изображения
         n_bytes = self.send_image_meta(image, socket)
         n_iters = n_bytes // self.block_size
         n_remains = n_bytes - n_iters * self.block_size
@@ -34,15 +32,13 @@ class ImageNetworker(Process):
 
     def send_image_meta(self, image, socket):
         h, w, _ = image.shape
-        n_bytes = h * w * 4  # 3 channels
-        bytes_array = image.tobytes()
-
-        # --- Send image meta info
-        # 1. N_Bytes
+        n_bytes = h * w * 3  # Так как RGB это 3 канала
+        # Отправляем мета данные
+        # 1. Размер
         assert self.send_int(n_bytes, socket) is None, 'Could not send n_bytes'
-        # 2. height
+        # 2. Высота
         assert self.send_int(h, socket) is None, 'Could not send height'
-        # 3. width
+        # 3. Ширина
         assert self.send_int(w, socket) is None, 'Could not send width'
         return n_bytes
 
@@ -50,8 +46,7 @@ class ImageNetworker(Process):
         _bytes = number.to_bytes(length=4, byteorder='big')
         return socket.sendall(_bytes)
 
-    # --- RECEIVING
-
+    # Методы получения изображения
     def recv_image(self, conn):
         n_bytes, h, w = self.recv_image_meta(conn)
         n_iters = n_bytes // self.block_size
@@ -66,24 +61,20 @@ class ImageNetworker(Process):
             if n_received == n_bytes:
                 break
 
-        if n_remains > 0:
-            block = conn.recv(n_remains)
-            im_bytes.append(block)
-
         im_bytes = b''.join(im_bytes)
         image = np.frombuffer(im_bytes, dtype='uint8')
         image = image.reshape(h, w, 3)
-        # self.assert_success()
+
         self.log(f'Received image with size={h, w}.')
         return image
 
     def recv_image_meta(self, conn):
-        # --- Recv image meta info
-        # 1. N_Bytes
+        # Получаем мета данные
+        # 1. Размер
         n_bytes = self.recv_int(conn)
-        # 2. height
+        # 2. Высота
         h = self.recv_int(conn)
-        # 3. width
+        # 3. Ширина
         w = self.recv_int(conn)
         return n_bytes, h, w
 
