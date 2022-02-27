@@ -1,0 +1,9 @@
+import numpy as np
+
+HOST = '127.0.0.1'
+NOISY_SERVER_PORT = 65003
+NORMAL_SERVER_PORT = 65004
+
+BODY_SIZE = np.uint32(2048)
+META_SIZE = np.uint32(327)
+
