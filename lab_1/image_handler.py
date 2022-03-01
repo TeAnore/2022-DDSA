@@ -49,8 +49,6 @@ class ImageHandler(Process):
     # Методы получения изображения
     def recv_image(self, conn):
         n_bytes, h, w = self.recv_image_meta(conn)
-        n_iters = n_bytes // self.block_size
-        n_remains = n_bytes - n_iters * self.block_size
         im_bytes = []
         n_received = 0
         while True:
